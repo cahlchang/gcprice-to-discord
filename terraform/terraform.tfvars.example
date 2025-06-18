@@ -1,0 +1,33 @@
+# Terraformで使用する変数の例
+# このファイルをterraform.tfvarsにコピーして、実際の値を設定してください
+
+# Discord Webhook URL
+discord_webhook_url = "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+
+# GCP認証情報 (JSON形式)
+gcp_credentials_json = <<-EOT
+{
+  "type": "service_account",
+  "project_id": "YOUR_PROJECT_ID",
+  "private_key_id": "YOUR_PRIVATE_KEY_ID",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----\n",
+  "client_email": "YOUR_SERVICE_ACCOUNT@YOUR_PROJECT.iam.gserviceaccount.com",
+  "client_id": "YOUR_CLIENT_ID",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "YOUR_CERT_URL"
+}
+EOT
+
+# GCP請求アカウントID
+gcp_billing_account_id = "XXXXXX-XXXXXX-XXXXXX"
+
+# BigQueryプロジェクトID
+bigquery_project_id = "YOUR_BIGQUERY_PROJECT_ID"
+
+# BigQueryテーブルID (プロジェクト.データセット.テーブル形式)
+bigquery_table_id = "YOUR_PROJECT.YOUR_DATASET.gcp_billing_export"
+
+# スケジュール設定 (オプション)
+# schedule_expression = "cron(0 0 * * ? *)"  # 毎日午前9時(JST)
