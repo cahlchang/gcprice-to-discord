@@ -1,6 +1,14 @@
-# GCP価格情報Discord通知ツール
+# GCP Billing to Discord Notifier
 
-GCPの請求情報を取得し、Discordに通知するLambda関数とそのTerraformデプロイコードです。
+GCPの請求情報を取得し、Discordに通知するサーバーレスアプリケーションです。AWS Lambda上で動作し、毎日10:10 AM JSTに自動実行されます。
+
+## 機能
+
+- GCP BigQueryから請求データを取得
+- 日本円（JPY）でコストを表示
+- サービス別の内訳を表示
+- Discord Embedフォーマットで見やすく通知
+- EventBridgeによる定期実行（毎日10:10 AM JST）
 
 ## プロジェクト構造
 
@@ -8,87 +16,110 @@ GCPの請求情報を取得し、Discordに通知するLambda関数とそのTerr
 .
 ├── lambda_function/        # Lambda関数のコード
 │   ├── main.py            # エントリポイント
-│   ├── gcp_client.py      # GCP APIクライアント
-│   ├── discord_client.py  # Discord APIクライアント
-│   ├── formatter.py       # データフォーマッタ
-│   └── requirements.txt   # 依存関係
-├── terraform/             # Terraformコード
-│   ├── provider.tf        # プロバイダ設定
+│   ├── gcp_client.py      # GCP BigQueryクライアント
+│   ├── discord_client.py  # Discord Webhookクライアント
+│   ├── formatter.py       # データフォーマッタ（JPY表示）
+│   └── requirements.txt   # Python依存関係
+├── terraform/             # インフラストラクチャコード
+│   ├── provider.tf        # AWSプロバイダ設定
 │   ├── variables.tf       # 変数定義
-│   ├── lambda.tf          # Lambda関数リソース
-│   └── iam.tf             # IAMリソース
-└── local_test.py          # ローカルテスト用スクリプト
+│   ├── lambda.tf          # Lambda関数とEventBridge
+│   ├── iam.tf             # IAMロールとポリシー
+│   └── outputs.tf         # 出力値
+├── local_test.py          # ローカルテスト用スクリプト
+├── build_lambda.sh        # Lambda関数のビルドスクリプト
+└── troubleshooting.md     # トラブルシューティングガイド
 ```
 
-## ローカルでのテスト方法
+## セットアップ
 
-依存関係の競合を避けるため、仮想環境を使用してテストすることをお勧めします。
+### 前提条件
 
-### 仮想環境の作成とテスト
+- Python 3.9+
+- Terraform 1.0+
+- AWS CLI設定済み
+- GCPサービスアカウント（BigQuery読み取り権限付き）
+- Discord Webhook URL
+
+### 1. 環境設定
 
 ```bash
-# 1. 仮想環境を作成
-python -m venv gcp_billing_env
+# .envrc.exampleをコピーして編集
+cp .envrc.example .envrc
+# 必要な環境変数を設定
+direnv allow
+```
 
-# 2. 仮想環境を有効化
-# Windowsの場合
-# gcp_billing_env\Scripts\activate
-# macOS/Linuxの場合
-source gcp_billing_env/bin/activate
+### 2. GCP認証情報の準備
 
-# 3. 必要なパッケージをインストール
+```bash
+# サービスアカウントJSONファイルをコピー
+cp gcp_billing_credentials.json.example gcp_billing_credentials.json
+# 実際の認証情報を設定
+```
+
+### 3. Terraform変数の設定
+
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# 必要な変数を設定
+```
+
+## ローカルテスト
+
+```bash
+# 仮想環境を作成
+python -m venv venv
+source venv/bin/activate  # macOS/Linux
+# venv\Scripts\activate  # Windows
+
+# 依存関係をインストール
 pip install -r lambda_function/requirements.txt
 
-# 4. ローカルテストスクリプトを実行する前に、テストスクリプト内の環境変数を設定
-# - GCP_CREDENTIALS: GCPサービスアカウントの認証情報
-# - GCP_BILLING_ACCOUNT_ID: GCP請求アカウントID
-# - DISCORD_WEBHOOK_URL: DiscordのウェブフックURL
-
-# 5. テストスクリプトを実行
+# テスト実行
 python local_test.py
 ```
 
-### ローカルテストの設定
-
-`local_test.py`ファイル内の`setup_env_vars()`関数を編集して、実際の認証情報とアカウントIDを設定してください。
-
-```python
-def setup_env_vars():
-    """環境変数を設定"""
-    # GCPの認証情報 (サービスアカウントのJSONを文字列として貼り付け)
-    os.environ['GCP_CREDENTIALS'] = '{"type": "service_account", ...}'
-    os.environ['GCP_BILLING_ACCOUNT_ID'] = 'YOUR_BILLING_ACCOUNT_ID'
-    
-    # DiscordのウェブフックURL
-    os.environ['DISCORD_WEBHOOK_URL'] = 'https://discord.com/api/webhooks/...'
-    
-    # ログレベル
-    os.environ['LOG_LEVEL'] = 'DEBUG'
-```
-
-## Terraformでのデプロイ方法
+## デプロイ
 
 ```bash
-# 1. Terraformディレクトリに移動
+# Lambda関数をビルド
+./build_lambda.sh
+
+# Terraformでデプロイ
 cd terraform
-
-# 2. 初期化
 terraform init
-
-# 3. 計画の確認
 terraform plan
-
-# 4. デプロイ
 terraform apply
 ```
 
-## 設定
+## 環境変数
 
-Terraformの`variables.tf`ファイルで以下の変数を設定できます：
+| 変数名 | 説明 | 例 |
+|--------|------|-----|
+| `GCP_CREDENTIALS` | GCPサービスアカウントJSON | `{"type": "service_account", ...}` |
+| `GCP_BILLING_ACCOUNT_ID` | GCP請求アカウントID | `XXXXXX-XXXXXX-XXXXXX` |
+| `BIGQUERY_PROJECT_ID` | BigQueryプロジェクトID | `your-project-id` |
+| `BIGQUERY_TABLE_ID` | BigQueryテーブルID | `dataset.table` |
+| `DISCORD_WEBHOOK_URL` | Discord Webhook URL | `https://discord.com/api/webhooks/...` |
+| `LOG_LEVEL` | ログレベル | `INFO` |
 
-- `aws_region`: AWSリージョン
-- `function_name`: Lambda関数名
-- `schedule_expression`: CloudWatchイベントのスケジュール式
-- `discord_webhook_url`: DiscordのウェブフックURL
-- `gcp_credentials`: GCPサービスアカウントの認証情報
-- `gcp_billing_account_id`: GCP請求アカウントID
+## BigQueryテーブル構造
+
+請求データエクスポートテーブルには以下のカラムが必要です：
+
+- `usage_start_time`: 使用開始時刻
+- `service.description`: サービス名
+- `cost`: コスト金額
+- `currency`: 通貨コード（通常USD）
+
+## トラブルシューティング
+
+- 認証エラーが発生する場合は、GCPサービスアカウントの権限を確認してください
+- Lambda関数のタイムアウトは30秒に設定されています
+- 詳細なトラブルシューティングは `troubleshooting.md` を参照してください
+
+## ライセンス
+
+MIT License

@@ -1,0 +1,17 @@
+# GCP credentials file path
+export GCP_CREDENTIALS="gcp_billing_credentials.json"
+
+# GCP billing account ID
+export GCP_BILLING_ACCOUNT_ID="YOUR-BILLING-ACCOUNT-ID"
+
+# Discord webhook URL
+export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/YOUR-WEBHOOK-ID/YOUR-WEBHOOK-TOKEN"
+
+# BigQuery project ID containing billing export
+export BIGQUERY_PROJECT_ID="your-project-id"
+
+# BigQuery table ID (format: dataset.table)
+export BIGQUERY_TABLE_ID="billing_export_dataset.gcp_billing_export_v1_XXXXXX_XXXXXX_XXXXXX"
+
+# Terraform AWS profile (optional)
+export TF_VAR_aws_profile="your-aws-profile"

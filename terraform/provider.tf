@@ -9,5 +9,5 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
-  # profile = "your-aws-profile"  # 必要に応じてプロファイル名を設定
+  profile = var.aws_profile
 }
