@@ -6,6 +6,12 @@ variable "aws_region" {
   default     = "ap-northeast-1"
 }
 
+variable "aws_profile" {
+  description = "AWS プロファイル名"
+  type        = string
+  default     = ""
+}
+
 variable "environment" {
   description = "環境識別子（dev, stage, prod）"
   type        = string

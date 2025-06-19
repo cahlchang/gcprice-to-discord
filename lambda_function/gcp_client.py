@@ -143,7 +143,7 @@ class GCPBillingClient:
         from google.cloud import bigquery
 
         try:
-            client = bigquery.Client(project=self.bigquery_project_id)
+            client = bigquery.Client(project=self.bigquery_project_id, credentials=self.credentials)
             query = f"""
                 SELECT
                   service.description as service_name,
