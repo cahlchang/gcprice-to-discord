@@ -7,11 +7,11 @@ import os
 import sys
 from datetime import datetime
 
-# カレントディレクトリをモジュール検索パスに追加
-sys.path.append('.')
+# lambda_functionディレクトリをモジュール検索パスに追加
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lambda_function'))
 
 # モジュールをインポート
-from lambda_function.main import lambda_handler
+from main import lambda_handler
 
 def setup_env_vars():
     """環境変数を.envrcやシェルから取得して設定（未設定時のみデフォルト値）"""
