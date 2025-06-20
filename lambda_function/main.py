@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GCPの請求情報を取得し、Discordに通知するLambda関数
+Lambda function to retrieve GCP billing information and notify Discord
 """
 import json
 import logging
@@ -11,12 +11,12 @@ from discord_client import DiscordClient, create_discord_client_from_env
 from formatter import DiscordMessageFormatter, create_formatter
 from gcp_client import GCPBillingClient, create_gcp_client_from_env
 
-# ロガーの設定
+# Logger configuration
 logger = logging.getLogger()
 log_level = os.environ.get('LOG_LEVEL', 'INFO').upper()
 logger.setLevel(log_level)
 
-# 標準出力にログを出力するハンドラを追加
+# Add handler to output logs to stdout
 stream_handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 stream_handler.setFormatter(formatter)
@@ -25,24 +25,24 @@ logger.addHandler(stream_handler)
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Lambda関数のエントリポイント
+    Lambda function entry point
     
     Args:
-        event: Lambdaイベント
-        context: Lambdaコンテキスト
+        event: Lambda event
+        context: Lambda context
         
     Returns:
-        Lambdaレスポンス
+        Lambda response
     """
     logger.info(f"Lambda function started. Event: {json.dumps(event)}")
     
     try:
-        # クライアントとフォーマッタの初期化
+        # Initialize clients and formatter
         gcp_client: GCPBillingClient = create_gcp_client_from_env()
         discord_client: DiscordClient = create_discord_client_from_env()
         message_formatter: DiscordMessageFormatter = create_formatter()
         
-        # イベントから請求情報を取得する月を決定
+        # Determine the month to get billing information from the event
         use_previous_month = event.get('use_previous_month', False)
         use_current_month = event.get('use_current_month', True)
         year = event.get('year')
@@ -66,17 +66,17 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
         logger.info(f"Billing data fetched: {json.dumps(billing_data, indent=2)}")
         
-        # 請求情報をDiscordメッセージ形式に整形
+        # Format billing information to Discord message format
         discord_embed = message_formatter.format_billing_data(billing_data)
         logger.debug(f"Formatted Discord embed: {json.dumps(discord_embed, indent=2)}")
         
-        # Discordにメッセージを送信
+        # Send message to Discord
         if billing_data['start_date'] == f"{billing_data['year']}-{billing_data['month']:02d}-01" and billing_data['end_date'] != f"{billing_data['year']}-{billing_data['month']:02d}-01":
-            # 今月の途中まで
-            message_content = f"{billing_data['year']}年{billing_data['month']}月のGCP請求情報（{billing_data['start_date']}〜{billing_data['end_date']}）"
+            # Up to the middle of this month
+            message_content = f"{billing_data['year']}年{billing_data['month']}月のGCP Billing Information ({billing_data['start_date']}〜{billing_data['end_date']})"
         else:
-            # 月全体
-            message_content = f"{billing_data['year']}年{billing_data['month']}月のGCP請求情報"
+            # Entire month
+            message_content = f"{billing_data['year']}年{billing_data['month']}月のGCP Billing Information"
         success = discord_client.send_message(message_content, embed=discord_embed)
         
         if success:
@@ -95,7 +95,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     except ValueError as ve:
         logger.error(f"Configuration error: {str(ve)}")
         return {
-            'statusCode': 400, # Bad Request (設定ミス)
+            'statusCode': 400, # Bad Request (configuration error)
             'body': json.dumps({'error': f"Configuration error: {str(ve)}"})
         }
     except Exception as e:
@@ -106,6 +106,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
 
 if __name__ == '__main__':
-    # ローカルテスト用の設定（環境変数を設定している前提）
-    # local_test.py から実行してください
+    # Configuration for local testing (assuming environment variables are set)
+    # Please run from local_test.py
     pass

@@ -1,78 +1,78 @@
-# GCP Billing to Discord - トラブルシューティング
+# GCP Billing to Discord - Troubleshooting Guide
 
-## 問題: 10:10 JST に通知が来ない
+## Issue: No notification at 10:10 JST
 
-### 確認済み事項
+### Verified Items
 
-1. **Terraform設定**
-   - EventBridgeルール: `cron(10 1 * * ? *)` (UTC 1:10 = JST 10:10) ✅
-   - Lambda関数の権限設定 ✅
-   - EventBridgeからLambdaへの実行権限 ✅
+1. **Terraform Configuration**
+   - EventBridge rule: `cron(10 1 * * ? *)` (UTC 1:10 = JST 10:10) ✅
+   - Lambda function permissions ✅
+   - EventBridge to Lambda execution permissions ✅
 
-2. **Lambda関数の動作**
-   - ローカルテストは成功 ✅
-   - Discord通知も正常に送信される ✅
+2. **Lambda Function Operation**
+   - Local test successful ✅
+   - Discord notifications sent successfully ✅
 
-### 問題の原因
+### Root Cause
 
-**異なるAWSアカウントが使用されている**
-- Terraformデプロイ先: `XXXXXXXXXXXX`
-- 現在のAWSプロファイル: `XXXXXXXXXXXX`
+**Different AWS accounts being used**
+- Terraform deployment target: `XXXXXXXXXXXX`
+- Current AWS profile: `XXXXXXXXXXXX`
 
-### 解決方法
+### Solutions
 
-1. **正しいAWSプロファイルで確認**
+1. **Verify with correct AWS profile**
    ```bash
-   # Terraformで使用したプロファイルを確認
+   # Check the profile used by Terraform
    cd terraform
    grep -r "profile" *.tf
    
-   # または terraform.tfvars を確認
+   # Or check terraform.tfvars
    cat terraform.tfvars
    ```
 
-2. **CloudWatch Logsの確認**
+2. **Check CloudWatch Logs**
    ```bash
-   # 正しいプロファイルでログを確認
+   # Check logs with correct profile
    aws logs tail /aws/lambda/gcp-billing-to-discord \
      --region ap-northeast-1 \
-     --profile [正しいプロファイル名] \
+     --profile [correct-profile-name] \
      --since 24h
    ```
 
-3. **EventBridgeルールの状態確認**
+3. **Verify EventBridge Rule Status**
    ```bash
-   # EventBridgeルールが有効か確認
+   # Check if EventBridge rule is enabled
    aws events describe-rule \
      --name gcp-billing-monthly-schedule \
      --region ap-northeast-1 \
-     --profile [正しいプロファイル名]
+     --profile [correct-profile-name]
    ```
 
-4. **手動でLambda関数を実行**
+4. **Manually Execute Lambda Function**
    ```bash
-   # テストイベントで手動実行
+   # Manual execution with test event
    aws lambda invoke \
      --function-name gcp-billing-to-discord \
      --payload '{"use_current_month": true}' \
      --region ap-northeast-1 \
-     --profile [正しいプロファイル名] \
+     --profile [correct-profile-name] \
      response.json
    ```
 
-### 追加の確認事項
+### Additional Checks
 
-1. **タイムゾーン設定**
-   - EventBridgeはUTCで動作
+1. **Timezone Settings**
+   - EventBridge operates in UTC
    - `cron(10 1 * * ? *)` = UTC 01:10 = JST 10:10
 
-2. **Lambda関数の環境変数**
-   - すべての必要な環境変数が設定されているか確認
-   - 特に認証情報が正しく設定されているか
+2. **Lambda Function Environment Variables**
+   - Verify all required environment variables are set
+   - Especially check that credentials are correctly configured
 
-3. **EventBridge実行履歴**
+3. **EventBridge Execution History**
    ```bash
-   # CloudWatchメトリクスで実行履歴を確認
+   # Check execution history via CloudWatch Metrics
    aws cloudwatch get-metric-statistics \
      --namespace AWS/Events \
      --metric-name SuccessfulRuleMatches \
@@ -82,11 +82,11 @@
      --period 3600 \
      --statistics Sum \
      --region ap-northeast-1 \
-     --profile [正しいプロファイル名]
+     --profile [correct-profile-name]
    ```
 
-### 推奨される次のステップ
+### Recommended Next Steps
 
-1. 正しいAWSプロファイルを使用してCloudWatch Logsを確認
-2. EventBridgeルールが実際に実行されているか確認
-3. 必要に応じてLambda関数を手動で実行してテスト
+1. Use correct AWS profile to check CloudWatch Logs
+2. Verify EventBridge rule is actually executing
+3. Manually execute Lambda function for testing if needed

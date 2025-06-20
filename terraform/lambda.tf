@@ -1,11 +1,11 @@
-# Lambda関数のデプロイパッケージ作成
+# Create Lambda deployment package
 data "archive_file" "lambda_zip" {
   type        = "zip"
   source_dir  = "${path.module}/../lambda_function"
   output_path = "${path.module}/dist/lambda_function.zip"
 }
 
-# Lambda関数
+# Lambda function
 resource "aws_lambda_function" "gcp_price_to_discord" {
   function_name = var.lambda_function_name
   filename      = data.archive_file.lambda_zip.output_path
@@ -31,7 +31,7 @@ resource "aws_lambda_function" "gcp_price_to_discord" {
   tags = var.tags
 }
 
-# CloudWatch Logs グループ
+# CloudWatch Logs group
 resource "aws_cloudwatch_log_group" "lambda_logs" {
   name              = "/aws/lambda/${var.lambda_function_name}"
   retention_in_days = var.lambda_log_retention_days
@@ -39,22 +39,22 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
   tags = var.tags
 }
 
-# EventBridgeルール（毎日実行）
+# EventBridge rule (daily execution)
 resource "aws_cloudwatch_event_rule" "daily_schedule" {
   name                = var.eventbridge_rule_name
-  description         = "毎日GCPコスト情報取得スケジュール"
+  description         = "Daily GCP cost information retrieval schedule"
   schedule_expression = var.schedule_expression
 
   tags = var.tags
 }
 
-# EventBridgeターゲット（Lambda関数）
+# EventBridge target (Lambda function)
 resource "aws_cloudwatch_event_target" "lambda_target" {
   rule      = aws_cloudwatch_event_rule.daily_schedule.name
   target_id = "InvokeLambda"
   arn       = aws_lambda_function.gcp_price_to_discord.arn
 
-  # 今月の途中経過を取得するようにパラメータを設定
+  # Set parameters to retrieve current month's progress
   input = jsonencode({
     use_current_month = true
   })

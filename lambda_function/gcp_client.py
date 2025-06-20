@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GCP Billing APIを使用して請求情報を取得するクライアント
+Client for retrieving billing information using GCP Billing API
 """
 import json
 import logging
@@ -18,17 +18,17 @@ logger = logging.getLogger(__name__)
 
 class GCPBillingClient:
     """
-    GCP Billing APIクライアントクラス
+    GCP Billing API client class
     """
     def __init__(self, billing_account_id: str, bigquery_project_id: str, bigquery_table_id: str, credentials=None):
         """
-        初期化
+        Initialize
         
         Args:
-            billing_account_id: GCPの請求アカウントID
-            bigquery_project_id: BigQueryのプロジェクトID
-            bigquery_table_id: BigQueryのテーブルID
-            credentials: GCP認証情報オブジェクト (オプション)
+            billing_account_id: GCP billing account ID
+            bigquery_project_id: BigQuery project ID
+            bigquery_table_id: BigQuery table ID
+            credentials: GCP credentials object (optional)
         """
         self.billing_account_id = billing_account_id
         self.bigquery_project_id = bigquery_project_id
@@ -37,7 +37,7 @@ class GCPBillingClient:
         if credentials:
             self.credentials = credentials
         else:
-            # ADCから認証情報を取得
+            # Get credentials from ADC
             scopes = ['https://www.googleapis.com/auth/cloud-billing']
             try:
                 self.credentials, project = google.auth.default(scopes=scopes)
@@ -49,30 +49,30 @@ class GCPBillingClient:
                 )
                 raise e
         
-        # Cloud Billing APIクライアントの構築
+        # Build Cloud Billing API client
         self.client = build('cloudbilling', 'v1', credentials=self.credentials)
         
     def get_cost_for_month(self, year: int, month: int) -> Dict[str, Any]:
         """
-        指定した月の請求情報を取得
+        Get billing information for specified month
         
         Args:
-            year: 年
-            month: 月
+            year: Year
+            month: Month
             
         Returns:
-            請求情報を含む辞書
+            Dictionary containing billing information
         """
         logger.info(f"Getting billing data for {year}-{month}")
         
-        # 期間の開始日と終了日を計算
+        # Calculate start and end dates for the period
         start_date = datetime(year, month, 1)
         if month == 12:
             end_date = datetime(year + 1, 1, 1)
         else:
             end_date = datetime(year, month + 1, 1)
         
-        # Cloud Billing APIのフィルタ条件を作成
+        # Create filter conditions for Cloud Billing API
         start_date_str = start_date.strftime('%Y-%m-%d')
         end_date_str = end_date.strftime('%Y-%m-%d')
         
@@ -91,12 +91,12 @@ class GCPBillingClient:
     
     def get_cost_for_previous_month(self) -> Dict[str, Any]:
         """
-        前月の請求情報を取得
+        Get billing information for previous month
         
         Returns:
-            請求情報を含む辞書
+            Dictionary containing billing information
         """
-        # 現在の日付から前月を計算
+        # Calculate previous month from current date
         today = datetime.now()
         first_day_of_current_month = datetime(today.year, today.month, 1)
         last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
@@ -107,18 +107,18 @@ class GCPBillingClient:
     
     def get_cost_for_current_month_to_date(self) -> Dict[str, Any]:
         """
-        今月1日から今日までの請求情報を取得
+        Get billing information from the 1st of this month to today
         
         Returns:
-            請求情報を含む辞書
+            Dictionary containing billing information
         """
         today = datetime.now()
         year = today.year
         month = today.month
         
-        # 期間の開始日と終了日を計算
+        # Calculate start and end dates for the period
         start_date = datetime(year, month, 1)
-        end_date = today + timedelta(days=1)  # 今日の終わりまで含める
+        end_date = today + timedelta(days=1)  # Include until end of today
         
         start_date_str = start_date.strftime('%Y-%m-%d')
         end_date_str = end_date.strftime('%Y-%m-%d')
@@ -130,7 +130,7 @@ class GCPBillingClient:
             'year': year,
             'month': month,
             'start_date': start_date_str,
-            'end_date': today.strftime('%Y-%m-%d'),  # 表示は今日の日付
+            'end_date': today.strftime('%Y-%m-%d'),  # Display today's date
             'total_cost': cost_summary['total_cost'],
             'currency': cost_summary['currency'],
             'services': cost_summary['services']
@@ -138,7 +138,7 @@ class GCPBillingClient:
     
     def _fetch_billing_data(self, start_date: str, end_date: str) -> List[Dict[str, Any]]:
         """
-        BigQueryから指定した期間の課金データを取得
+        Fetch billing data for specified period from BigQuery
         """
         from google.cloud import bigquery
 
@@ -169,11 +169,11 @@ class GCPBillingClient:
 
     def _summarize_billing_data(self, billing_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        BigQueryから取得した課金データを集計
+        Summarize billing data retrieved from BigQuery
         """
         try:
             total_cost = 0.0
-            currency = 'JPY'  # デフォルト通貨
+            currency = 'JPY'  # Default currency
             services = []
 
             for row in billing_data:
@@ -188,7 +188,7 @@ class GCPBillingClient:
                     'cost': service_cost
                 })
 
-            # サービスをコストの降順でソート（クエリで実施済みだが念のため）
+            # Sort services by cost in descending order (already done in query but just to be safe)
             services = sorted(services, key=lambda x: x['cost'], reverse=True)
 
             return {
@@ -207,12 +207,12 @@ class GCPBillingClient:
 
 def create_gcp_client_from_env() -> GCPBillingClient:
     """
-    環境変数から認証情報を取得してGCPクライアントを作成
+    Create GCP client by getting credentials from environment variables
 
     Returns:
         GCPBillingClient
     """
-    # 環境変数から認証情報とアカウントIDを取得
+    # Get credentials and account ID from environment variables
     billing_account_id = os.environ.get('GCP_BILLING_ACCOUNT_ID')
     bigquery_project_id = os.environ.get('BIGQUERY_PROJECT_ID')
     bigquery_table_id = os.environ.get('BIGQUERY_TABLE_ID')
@@ -224,7 +224,7 @@ def create_gcp_client_from_env() -> GCPBillingClient:
     if not bigquery_table_id:
         raise ValueError("Environment variable 'BIGQUERY_TABLE_ID' is not set")
 
-    # GCP認証情報を環境変数から取得
+    # Get GCP credentials from environment variables
     credentials_json = os.environ.get('GCP_CREDENTIALS')
     credentials = None
     if credentials_json:

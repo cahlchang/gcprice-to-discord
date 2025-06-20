@@ -1,125 +1,125 @@
 # GCP Billing to Discord Notifier
 
-GCPの請求情報を取得し、Discordに通知するサーバーレスアプリケーションです。AWS Lambda上で動作し、毎日10:10 AM JSTに自動実行されます。
+A serverless application that fetches GCP billing information and sends notifications to Discord. Runs on AWS Lambda and executes daily at 10:10 AM JST.
 
-## 機能
+## Features
 
-- GCP BigQueryから請求データを取得
-- 日本円（JPY）でコストを表示
-- サービス別の内訳を表示
-- Discord Embedフォーマットで見やすく通知
-- EventBridgeによる定期実行（毎日10:10 AM JST）
+- Fetches billing data from GCP BigQuery
+- Displays costs in Japanese Yen (JPY)
+- Shows breakdown by service
+- Sends well-formatted Discord Embed notifications
+- Scheduled execution via EventBridge (daily at 10:10 AM JST)
 
-## プロジェクト構造
+## Project Structure
 
 ```
 .
-├── lambda_function/        # Lambda関数のコード
-│   ├── main.py            # エントリポイント
-│   ├── gcp_client.py      # GCP BigQueryクライアント
-│   ├── discord_client.py  # Discord Webhookクライアント
-│   ├── formatter.py       # データフォーマッタ（JPY表示）
-│   └── requirements.txt   # Python依存関係
-├── terraform/             # インフラストラクチャコード
-│   ├── provider.tf        # AWSプロバイダ設定
-│   ├── variables.tf       # 変数定義
-│   ├── lambda.tf          # Lambda関数とEventBridge
-│   ├── iam.tf             # IAMロールとポリシー
-│   └── outputs.tf         # 出力値
-├── local_test.py          # ローカルテスト用スクリプト
-├── build_lambda.sh        # Lambda関数のビルドスクリプト
-└── troubleshooting.md     # トラブルシューティングガイド
+├── lambda_function/        # Lambda function code
+│   ├── main.py            # Entry point
+│   ├── gcp_client.py      # GCP BigQuery client
+│   ├── discord_client.py  # Discord Webhook client
+│   ├── formatter.py       # Data formatter (JPY display)
+│   └── requirements.txt   # Python dependencies
+├── terraform/             # Infrastructure as Code
+│   ├── provider.tf        # AWS provider configuration
+│   ├── variables.tf       # Variable definitions
+│   ├── lambda.tf          # Lambda function and EventBridge
+│   ├── iam.tf             # IAM roles and policies
+│   └── outputs.tf         # Output values
+├── local_test.py          # Local test script
+├── build_lambda.sh        # Lambda build script
+└── troubleshooting.md     # Troubleshooting guide
 ```
 
-## セットアップ
+## Setup
 
-### 前提条件
+### Prerequisites
 
 - Python 3.9+
 - Terraform 1.0+
-- AWS CLI設定済み
-- GCPサービスアカウント（BigQuery読み取り権限付き）
+- AWS CLI configured
+- GCP service account with BigQuery read permissions
 - Discord Webhook URL
 
-### 1. 環境設定
+### 1. Environment Configuration
 
 ```bash
-# .envrc.exampleをコピーして編集
+# Copy and edit .envrc.example
 cp .envrc.example .envrc
-# 必要な環境変数を設定
+# Set required environment variables
 direnv allow
 ```
 
-### 2. GCP認証情報の準備
+### 2. GCP Credentials Setup
 
 ```bash
-# サービスアカウントJSONファイルをコピー
+# Copy service account JSON file
 cp gcp_billing_credentials.json.example gcp_billing_credentials.json
-# 実際の認証情報を設定
+# Set actual credentials
 ```
 
-### 3. Terraform変数の設定
+### 3. Terraform Variables Configuration
 
 ```bash
 cd terraform
 cp terraform.tfvars.example terraform.tfvars
-# 必要な変数を設定
+# Set required variables
 ```
 
-## ローカルテスト
+## Local Testing
 
 ```bash
-# 仮想環境を作成
+# Create virtual environment
 python -m venv venv
 source venv/bin/activate  # macOS/Linux
 # venv\Scripts\activate  # Windows
 
-# 依存関係をインストール
+# Install dependencies
 pip install -r lambda_function/requirements.txt
 
-# テスト実行
+# Run test
 python local_test.py
 ```
 
-## デプロイ
+## Deployment
 
 ```bash
-# Lambda関数をビルド
+# Build Lambda function
 ./build_lambda.sh
 
-# Terraformでデプロイ
+# Deploy with Terraform
 cd terraform
 terraform init
 terraform plan
 terraform apply
 ```
 
-## 環境変数
+## Environment Variables
 
-| 変数名 | 説明 | 例 |
-|--------|------|-----|
-| `GCP_CREDENTIALS` | GCPサービスアカウントJSON | `{"type": "service_account", ...}` |
-| `GCP_BILLING_ACCOUNT_ID` | GCP請求アカウントID | `XXXXXX-XXXXXX-XXXXXX` |
-| `BIGQUERY_PROJECT_ID` | BigQueryプロジェクトID | `your-project-id` |
-| `BIGQUERY_TABLE_ID` | BigQueryテーブルID | `dataset.table` |
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `GCP_CREDENTIALS` | GCP service account JSON | `{"type": "service_account", ...}` |
+| `GCP_BILLING_ACCOUNT_ID` | GCP billing account ID | `XXXXXX-XXXXXX-XXXXXX` |
+| `BIGQUERY_PROJECT_ID` | BigQuery project ID | `your-project-id` |
+| `BIGQUERY_TABLE_ID` | BigQuery table ID | `dataset.table` |
 | `DISCORD_WEBHOOK_URL` | Discord Webhook URL | `https://discord.com/api/webhooks/...` |
-| `LOG_LEVEL` | ログレベル | `INFO` |
+| `LOG_LEVEL` | Log level | `INFO` |
 
-## BigQueryテーブル構造
+## BigQuery Table Structure
 
-請求データエクスポートテーブルには以下のカラムが必要です：
+The billing data export table requires the following columns:
 
-- `usage_start_time`: 使用開始時刻
-- `service.description`: サービス名
-- `cost`: コスト金額
-- `currency`: 通貨コード（通常USD）
+- `usage_start_time`: Usage start timestamp
+- `service.description`: Service name
+- `cost`: Cost amount
+- `currency`: Currency code (typically USD)
 
-## トラブルシューティング
+## Troubleshooting
 
-- 認証エラーが発生する場合は、GCPサービスアカウントの権限を確認してください
-- Lambda関数のタイムアウトは30秒に設定されています
-- 詳細なトラブルシューティングは `troubleshooting.md` を参照してください
+- For authentication errors, check GCP service account permissions
+- Lambda function timeout is set to 30 seconds
+- See `troubleshooting.md` for detailed troubleshooting guide
 
-## ライセンス
+## License
 
 MIT License
