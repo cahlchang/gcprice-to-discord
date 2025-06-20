@@ -1,4 +1,4 @@
-# Lambda関数用のIAMロール
+# IAM role for Lambda function
 resource "aws_iam_role" "lambda_role" {
   name = var.lambda_role_name
 
@@ -18,10 +18,10 @@ resource "aws_iam_role" "lambda_role" {
   tags = var.tags
 }
 
-# Lambda基本実行ポリシー（CloudWatch Logs）
+# Lambda basic execution policy (CloudWatch Logs)
 resource "aws_iam_policy" "lambda_basic_execution" {
   name        = "${var.lambda_role_name}-basic-execution"
-  description = "Lambda基本実行権限（CloudWatch Logsの作成・書き込み）"
+  description = "Lambda basic execution permissions (create and write to CloudWatch Logs)"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -39,13 +39,13 @@ resource "aws_iam_policy" "lambda_basic_execution" {
   })
 }
 
-# IAMポリシーをロールに割り当て
+# Attach IAM policy to role
 resource "aws_iam_role_policy_attachment" "lambda_logs" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = aws_iam_policy.lambda_basic_execution.arn
 }
 
-# EventBridgeがLambdaを呼び出すためのポリシー
+# Policy for EventBridge to invoke Lambda
 resource "aws_lambda_permission" "allow_eventbridge" {
   statement_id  = "AllowExecutionFromEventBridge"
   action        = "lambda:InvokeFunction"

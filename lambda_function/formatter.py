@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-請求情報をDiscordメッセージ形式に整形するフォーマッタ
+Formatter for converting billing information to Discord message format
 """
 import logging
 from typing import Any, Dict, List, Optional
@@ -9,26 +9,26 @@ logger = logging.getLogger(__name__)
 
 class DiscordMessageFormatter:
     """
-    Discordメッセージフォーマッタクラス
+    Discord message formatter class
     """
     
     def __init__(self, exchange_rate: float = 150.0):
         """
-        初期化
+        Initialize
         
         Args:
-            exchange_rate: USDからJPYへの為替レート (デフォルト: 150.0)
+            exchange_rate: USD to JPY exchange rate (default: 150.0)
         """
         self.exchange_rate = exchange_rate
     def format_billing_data(self, billing_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        請求情報をDiscord埋め込みメッセージ形式に整形
+        Format billing information to Discord embed message format
         
         Args:
-            billing_data: 請求情報
+            billing_data: Billing information
             
         Returns:
-            Discord埋め込みメッセージ形式の辞書
+            Dictionary in Discord embed message format
         """
         year = billing_data['year']
         month = billing_data['month']
@@ -36,14 +36,14 @@ class DiscordMessageFormatter:
         currency = billing_data['currency']
         services = billing_data['services']
         
-        # 通貨がJPYの場合はそのまま使用、USDの場合は変換
+        # Use as-is if currency is JPY, convert if USD
         if currency == 'JPY':
             total_cost_display = total_cost
         else:
             total_cost_display = total_cost * self.exchange_rate
         
-        title = f"{year}年{month}月 GCP請求情報"
-        description = f"合計金額: **¥{total_cost_display:,.0f}**"
+        title = f"{year}年{month}月 GCP Billing Information"
+        description = f"Total amount: **¥{total_cost_display:,.0f}**"
         
         fields = []
         if services:
@@ -59,18 +59,18 @@ class DiscordMessageFormatter:
                 })
         else:
             fields.append({
-                "name": "サービス利用なし",
-                "value": "請求情報がありませんでした。",
+                "name": "No service usage",
+                "value": "No billing information found.",
                 "inline": False
             })
             
-        # フィールド数が多すぎる場合は調整（Discordの制限は25フィールド）
+        # Adjust if too many fields (Discord limit is 25 fields)
         if len(fields) > 25:
             logger.warning(f"Too many fields for Discord embed ({len(fields)}). Truncating to 25.")
             fields = fields[:24] 
             fields.append({
-                "name": "その他",
-                "value": "多数のサービス利用があります...",
+                "name": "Others",
+                "value": "Many more services used...",
                 "inline": False
             })
 
@@ -88,10 +88,10 @@ class DiscordMessageFormatter:
 
 def create_formatter(exchange_rate: float = 150.0) -> DiscordMessageFormatter:
     """
-    DiscordMessageFormatterのインスタンスを作成
+    Create DiscordMessageFormatter instance
     
     Args:
-        exchange_rate: USDからJPYへの為替レート (デフォルト: 150.0)
+        exchange_rate: USD to JPY exchange rate (default: 150.0)
     
     Returns:
         DiscordMessageFormatter

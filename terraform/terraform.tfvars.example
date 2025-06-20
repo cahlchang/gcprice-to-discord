@@ -1,10 +1,10 @@
-# Terraformで使用する変数の例
-# このファイルをterraform.tfvarsにコピーして、実際の値を設定してください
+# Example of variables used in Terraform
+# Copy this file to terraform.tfvars and set actual values
 
 # Discord Webhook URL
 discord_webhook_url = "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
 
-# GCP認証情報 (JSON形式)
+# GCP credentials (JSON format)
 gcp_credentials_json = <<-EOT
 {
   "type": "service_account",
@@ -20,14 +20,14 @@ gcp_credentials_json = <<-EOT
 }
 EOT
 
-# GCP請求アカウントID
+# GCP billing account ID
 gcp_billing_account_id = "XXXXXX-XXXXXX-XXXXXX"
 
-# BigQueryプロジェクトID
+# BigQuery project ID
 bigquery_project_id = "YOUR_BIGQUERY_PROJECT_ID"
 
-# BigQueryテーブルID (プロジェクト.データセット.テーブル形式)
+# BigQuery table ID (project.dataset.table format)
 bigquery_table_id = "YOUR_PROJECT.YOUR_DATASET.gcp_billing_export"
 
-# スケジュール設定 (オプション)
-# schedule_expression = "cron(0 0 * * ? *)"  # 毎日午前9時(JST)
+# Schedule configuration (optional)
+# schedule_expression = "cron(0 0 * * ? *)"  # Daily at 9:00 AM (JST)
