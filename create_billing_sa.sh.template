@@ -1,123 +1,123 @@
 #!/bin/bash
 
-# --- 設定項目 ---
-# サービスアカウントを作成するGCPプロジェクトのID
+# --- Configuration Items ---
+# GCP project ID where the service account will be created
 PROJECT_ID="YOUR_PROJECT_ID"
 
-# 作成するサービスアカウントのID (例: billing-reader-sa)
+# Service account ID to create (e.g., billing-reader-sa)
 SERVICE_ACCOUNT_ID="billing-reader-sa"
 
-# 作成するサービスアカウントの表示名
+# Display name for the service account
 SERVICE_ACCOUNT_DISPLAY_NAME="Billing Reader Service Account"
 
-# 生成するサービスアカウントキーを保存するファイルパス
+# File path to save the generated service account key
 KEY_FILE_PATH="./gcp_billing_credentials.json"
 
-# IAMロールを付与する対象の請求アカウントID
+# Billing account ID to grant IAM roles
 BILLING_ACCOUNT_ID="YOUR_BILLING_ACCOUNT_ID"
 
-# 付与するIAMロール
+# IAM roles to grant
 IAM_ROLE="roles/billing.viewer"
 BIGQUERY_DATA_VIEWER_ROLE="roles/bigquery.dataViewer"
 BIGQUERY_USER_ROLE="roles/bigquery.user"
-# --- 設定項目ここまで ---
+# --- End of Configuration ---
 
-# サービスアカウントの完全なメールアドレス
+# Full email address of the service account
 SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_ID}@${PROJECT_ID}.iam.gserviceaccount.com"
 
-echo "以下の設定で処理を開始します:"
-echo "  プロジェクトID: ${PROJECT_ID}"
-echo "  サービスアカウントID: ${SERVICE_ACCOUNT_ID}"
-echo "  サービスアカウント表示名: ${SERVICE_ACCOUNT_DISPLAY_NAME}"
-echo "  サービスアカウントメール: ${SERVICE_ACCOUNT_EMAIL}"
-echo "  キーファイルパス: ${KEY_FILE_PATH}"
-echo "  請求アカウントID: ${BILLING_ACCOUNT_ID}"
-echo "  IAMロール: ${IAM_ROLE}"
-echo "  BigQuery Data Viewerロール: ${BIGQUERY_DATA_VIEWER_ROLE}"
-echo "  BigQuery Userロール: ${BIGQUERY_USER_ROLE}"
+echo "Starting process with the following configuration:"
+echo "  Project ID: ${PROJECT_ID}"
+echo "  Service Account ID: ${SERVICE_ACCOUNT_ID}"
+echo "  Service Account Display Name: ${SERVICE_ACCOUNT_DISPLAY_NAME}"
+echo "  Service Account Email: ${SERVICE_ACCOUNT_EMAIL}"
+echo "  Key File Path: ${KEY_FILE_PATH}"
+echo "  Billing Account ID: ${BILLING_ACCOUNT_ID}"
+echo "  IAM Role: ${IAM_ROLE}"
+echo "  BigQuery Data Viewer Role: ${BIGQUERY_DATA_VIEWER_ROLE}"
+echo "  BigQuery User Role: ${BIGQUERY_USER_ROLE}"
 echo ""
-read -p "よろしいですか？ (y/N): " confirmation
+read -p "Do you want to proceed? (y/N): " confirmation
 if [[ "$confirmation" != "y" && "$confirmation" != "Y" ]]; then
-    echo "処理を中断しました。"
+    echo "Process cancelled."
     exit 1
 fi
 
 echo ""
-echo "1. サービスアカウントを作成中..."
-# サービスアカウントが存在するか確認
+echo "1. Creating service account..."
+# Check if service account exists
 if gcloud iam service-accounts describe "${SERVICE_ACCOUNT_EMAIL}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
-    echo "サービスアカウント ${SERVICE_ACCOUNT_EMAIL} は既に存在します。更新します。"
+    echo "Service account ${SERVICE_ACCOUNT_EMAIL} already exists. Will update."
 else
-    echo "サービスアカウント ${SERVICE_ACCOUNT_EMAIL} が存在しないため、作成します..."
+    echo "Service account ${SERVICE_ACCOUNT_EMAIL} does not exist. Creating..."
     gcloud iam service-accounts create "${SERVICE_ACCOUNT_ID}" \
         --project="${PROJECT_ID}" \
         --display-name="${SERVICE_ACCOUNT_DISPLAY_NAME}"
 fi
 
 if [ $? -ne 0 ]; then
-    echo "エラー: サービスアカウントの作成に失敗しました。"
+    echo "Error: Failed to create service account."
     exit 1
 fi
-echo "サービスアカウントを作成しました。"
+echo "Service account created."
 echo ""
 
-echo "2. サービスアカウントキーを作成し、ダウンロード中..."
+echo "2. Creating and downloading service account key..."
 gcloud iam service-accounts keys create "${KEY_FILE_PATH}" \
     --iam-account="${SERVICE_ACCOUNT_EMAIL}" \
     --project="${PROJECT_ID}"
 
 if [ $? -ne 0 ]; then
-    echo "エラー: サービスアカウントキーの作成に失敗しました。"
-    KEY_FILE_PATH="" # キー作成失敗時はパスをクリア
+    echo "Error: Failed to create service account key."
+    KEY_FILE_PATH="" # Clear path on key creation failure
 fi
 if [ -n "${KEY_FILE_PATH}" ]; then
-    echo "サービスアカウントキーを ${KEY_FILE_PATH} に保存しました。"
+    echo "Service account key saved to ${KEY_FILE_PATH}."
     echo ""
 fi
 
 
-echo "3. 請求アカウントへのIAM権限を付与中..."
+echo "3. Granting IAM permissions to billing account..."
 gcloud billing accounts add-iam-policy-binding "${BILLING_ACCOUNT_ID}" \
     --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
     --role="${IAM_ROLE}"
 
 if [ $? -eq 0 ]; then
-    echo "  BigQuery Data Viewerロールを付与中..."
+    echo "  Granting BigQuery Data Viewer role..."
     gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
         --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
         --role="${BIGQUERY_DATA_VIEWER_ROLE}"
     if [ $? -ne 0 ]; then
-        echo "エラー: BigQuery Data Viewerロールの付与に失敗しました。"
+        echo "Error: Failed to grant BigQuery Data Viewer role."
     else
-        echo "BigQuery Data Viewerロールを付与しました。"
+        echo "BigQuery Data Viewer role granted."
     fi
 
-    echo "  BigQuery Userロールを付与中..."
+    echo "  Granting BigQuery User role..."
     gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
         --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
         --role="${BIGQUERY_USER_ROLE}"
     if [ $? -ne 0 ]; then
-        echo "エラー: BigQuery Userロールの付与に失敗しました。"
+        echo "Error: Failed to grant BigQuery User role."
     else
-        echo "BigQuery Userロールを付与しました。"
+        echo "BigQuery User role granted."
     fi
 fi
 
 if [ $? -ne 0 ]; then
-    echo "エラー: 請求アカウントへのIAM権限の付与に失敗しました。"
-    echo "手動でGCPコンソールから権限を付与する必要があるかもしれません。"
-    # キーファイルが作成されていれば、その旨を伝える
+    echo "Error: Failed to grant IAM permissions to billing account."
+    echo "You may need to manually grant permissions from the GCP console."
+    # If key file was created, inform the user
     if [ -n "${KEY_FILE_PATH}" ] && [ -f "${KEY_FILE_PATH}" ]; then
-        echo "サービスアカウントとキーファイル (${KEY_FILE_PATH}) は作成されています。"
-        echo "GCPコンソールでサービスアカウント ${SERVICE_ACCOUNT_EMAIL} に、請求アカウント ${BILLING_ACCOUNT_ID} の ${IAM_ROLE} 権限を付与してください。"
+        echo "Service account and key file (${KEY_FILE_PATH}) have been created."
+        echo "Please grant ${IAM_ROLE} permission for billing account ${BILLING_ACCOUNT_ID} to service account ${SERVICE_ACCOUNT_EMAIL} in the GCP console."
     fi
     exit 1
 fi
-echo "請求アカウントへのIAM権限を付与しました。"
+echo "IAM permissions granted to billing account."
 echo ""
 
-echo "処理が正常に完了しました。"
+echo "Process completed successfully."
 if [ -n "${KEY_FILE_PATH}" ] && [ -f "${KEY_FILE_PATH}" ]; then
-  echo "サービスアカウントキーは ${KEY_FILE_PATH} に保存されています。"
-  echo "このキーファイルを lambda_function の GCP_CREDENTIALS 環境変数に設定してください。"
+  echo "Service account key is saved at ${KEY_FILE_PATH}."
+  echo "Please set this key file to the GCP_CREDENTIALS environment variable in lambda_function."
 fi
