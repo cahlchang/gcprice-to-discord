@@ -21,7 +21,7 @@ resource "aws_iam_role" "lambda_role" {
 # Lambda basic execution policy (CloudWatch Logs)
 resource "aws_iam_policy" "lambda_basic_execution" {
   name        = "${var.lambda_role_name}-basic-execution"
-  description = "Lambda basic execution permissions (create and write to CloudWatch Logs)"
+  description = "Lambda基本実行権限（CloudWatch Logsの作成・書き込み）"
 
   policy = jsonencode({
     Version = "2012-10-17"

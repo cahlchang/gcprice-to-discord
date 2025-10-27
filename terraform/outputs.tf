@@ -17,3 +17,8 @@ output "cloudwatch_log_group" {
   description = "CloudWatch Logs group name"
   value       = aws_cloudwatch_log_group.lambda_logs.name
 }
+
+output "account_alias" {
+  description = "AWS account alias"
+  value       = data.aws_iam_account_alias.current.account_alias
+}
